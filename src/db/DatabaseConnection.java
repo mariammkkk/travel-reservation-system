@@ -1,3 +1,4 @@
+package db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
@@ -9,7 +10,7 @@ public class DatabaseConnection {
             return DriverManager.getConnection(
                 "jdbc:mysql://localhost:3306/travel_reservation",
                 "root",
-                "HEMApriya123!!"
+                "Rainbow01"
             );
 
         } catch (Exception e) {

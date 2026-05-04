@@ -1,5 +1,7 @@
 import java.sql.*;
 
+import db.DatabaseConnection;
+
 public class FindFlights {
     public static void searchOneWay(String from, String to, String date) {
         try {

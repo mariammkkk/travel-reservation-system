@@ -1,5 +1,7 @@
 import java.sql.*;
 
+import db.DatabaseConnection;
+
 public class SortFlights {    
     public static void sortFlightsTakeOff_Landing_Price(String criteria, String from, String to, 
         boolean takeoff, boolean landing, boolean price) {
