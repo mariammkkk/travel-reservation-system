@@ -10,7 +10,7 @@ public class DatabaseConnection {
             return DriverManager.getConnection(
                 "jdbc:mysql://localhost:3306/travel_reservation",
                 "root",
-                "Rainbow01"
+                "..."
             );
 
         } catch (Exception e) {
