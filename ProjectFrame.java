@@ -1,22 +1,30 @@
+// FILE OVERVIEW: This Java program creates a simple GUI application for user login and registration using Swing.
+// It connects to a MySQL database to store and verify user credentials. The application allows users to add new accounts, 
+// log in, and clear input fields, displaying appropriate messages based on the actions performed.
+// It routes to the correct panel based on role
+
+// TLDR: THIS IS THE FIRST WINDOW LAUNCHED WHEN YOU RUN THE APP, HANDLING LOGIN FORM & DATABASE CONNECTION STARTUP
+
 import java.sql.*;
 import java.awt.*;
 import java.awt.event.*;
 
 import javax.swing.*;
+import javax.xml.crypto.Data;
+
+import db.DatabaseConnection;
+import panels.AdminPanel;
+import panels.CustomerPanel;
+import panels.RepPanel;
 
 public class ProjectFrame extends JFrame {
     // GUI related-variables:
     final private Font mainFont=new Font("Lucida Sans",Font.BOLD,18);
-    JTextField tfuser,tfpasswd;
-    JLabel msg;
+    JTextField tfuser,tfpasswd; // to read the username and password from the user, they are global variables because they will be used in the listeners of the buttons
+    JLabel msg; // to display messages to the user (e.g., welcome, error, etc.)
+    JComboBox<String> roleBox; // to select the role of the user (customer or employee)
 
-    // Database related variables:
-    public static Connection con = null;
-    public static Statement stmt=null;
-    public static boolean userLoggedin=false;
-    public static String user=""; 
-
-    public void initialize()  throws Exception {
+    public void initialize() throws Exception {
         // inputPanel: ------------------------------------
         // -- inputPanel components 
         JLabel lbuser=new JLabel("Username");
@@ -31,15 +39,23 @@ public class ProjectFrame extends JFrame {
         tfpasswd=new JTextField();
         tfpasswd.setFont(mainFont);
 
+        //-- role selection
+        JLabel lbrole=new JLabel("Login As");
+        lbrole.setFont(mainFont);
+        roleBox=new JComboBox<>(new String[]{"Customer","Employee"});
+        roleBox.setFont(mainFont);
+
         //-- create inputPanel and add its components 
         JPanel inputPanel=new JPanel();
-        inputPanel.setLayout(new GridLayout(2,2,5,5));
+        inputPanel.setLayout(new GridLayout(3,2,5,5));
         inputPanel.setOpaque(false); // so that form color is seen as background
 
         inputPanel.add(lbuser);
         inputPanel.add(tfuser);
         inputPanel.add(lbpasswd);
         inputPanel.add(tfpasswd);
+        inputPanel.add(lbrole);
+        inputPanel.add(roleBox);
         
         // msg : ------------------------------------
         msg=new JLabel();      // text will be added later (it is global variable)
@@ -47,59 +63,13 @@ public class ProjectFrame extends JFrame {
 
         // buttonPanel: ------------------------------------
         // -- buttonPanel components 
-        JButton btnAdd=new JButton("Add User");
-        btnAdd.setFont(mainFont);
-        // add a listener
-        btnAdd.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // read the text of the text fields and store new user in the database
-                // first just put it on Welcome
-                String user=tfuser.getText();
-                String passwd=tfpasswd.getText();
-                // insert into the database
-                String instruction="insert into users values ";
-                instruction+="('"+user+"','"+passwd+"')";
-                try{
-                    int result=stmt.executeUpdate(instruction);
-                    String s="User "+user+" has been Added "+result;
-                    msg.setText(s);
-                }
-                catch (SQLException e1) {
-                    msg.setText("Unable to add new user");
-                }                
-            }});
-
         JButton btnLogin=new JButton("Login");
         btnLogin.setFont(mainFont);
         // add a listener
         btnLogin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // read the text of the text fields and check that
-                // they are in the database
-                user=tfuser.getText();
-                String passwd=tfpasswd.getText();
-                String query="select * from users where ";
-                // check to see if they are in the database
-                query+="user='"+user+"' and password='"+passwd+"'";
-                ResultSet rset=null;
-                try{
-                    rset=stmt.executeQuery(query);
-                    if (rset.next()){
-                        String s="Welcome "+user;
-                        userLoggedin=true;
-                        msg.setText(s);
-                    }
-                    else{
-                        String s="Unknow user "+user+" not logged in";
-                        msg.setText(s);
-                    }
-                }
-                catch (SQLException e1) {
-                    msg.setText("<html> Error in the query: "+query);
-//                    e1.printStackTrace();
-                }                
+                doLogin();
             }});
 
         JButton btnClear=new JButton("Clear");
@@ -117,9 +87,8 @@ public class ProjectFrame extends JFrame {
 
         //-- create buttonPanel and add its components 
         JPanel buttonPanel=new JPanel();
-        buttonPanel.setLayout(new GridLayout(1,3,5,5));
+        buttonPanel.setLayout(new GridLayout(1,2,5,5));
         buttonPanel.setOpaque(false);
-        buttonPanel.add(btnAdd);
         buttonPanel.add(btnLogin);
         buttonPanel.add(btnClear);
 
@@ -137,27 +106,67 @@ public class ProjectFrame extends JFrame {
         // -- Add the mainPanel to our JForm and set up basic attributes
         this.add(mainPanel);
 
-        this.setTitle("Login Page");
+        this.setTitle("Travel Reservation System - Login");
         this.setSize(500,300);
         this.setMinimumSize(new Dimension(300,200));
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setVisible(true);
     }
 
-    public static void main(String[] args) throws Exception {
-        //Initialize the connection to the database
-        String url = "jdbc:mysql://localhost:3306/testproject";
-        String user = "root";
-        String password = "HEMApriya123!!";
+    // login logic
+    private void doLogin() {
+        String username = tfuser.getText().trim();
+        String password = tfpasswd.getText().trim();
+        String role = (String) roleBox.getSelectedItem();
+
         try {
-            con = DriverManager.getConnection(url, user, password);
-            stmt = con.createStatement();
+            Connection con = DatabaseConnection.getConnection();
+            
+            // customer
+            if (role.equals("Customer")) {
+                PreparedStatement ps = con.prepareStatement(
+                    "SELECT customer_id FROM Customer WHERE username=? AND password=?");
+                ps.setString(1, username);
+                ps.setString(2, password);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    msg.setText("Welcome " + username + "!");
+                    this.dispose(); 
+                    CustomerPanel customerPanel = new CustomerPanel(customerId);
+                    customerPanel.initialize();
+                } else {
+                    msg.setText("Unknown customer. Try again.");
+                }
+
+            } else { // Employee
+                PreparedStatement ps = con.prepareStatement(
+                    "SELECT employee_id, is_admin FROM Employee WHERE username=? AND password=?");
+                ps.setString(1, username);
+                ps.setString(2, password);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    boolean isAdmin = rs.getBoolean("is_admin");
+                    msg.setText("Welcome " + username + "!");
+                        this.dispose();
+                    if (isAdmin) {
+                        AdminPanel adminPanel = new AdminPanel(employeeId);
+                        adminPanel.initialize();
+                    } else {
+                        RepPanel repPanel = new RepPanel(employeeId);
+                        repPanel.initialize();
+                    }
+                } else {
+                    msg.setText("Unknown employee. Try again.");
+                }
+            }
+
+        } catch (SQLException ex) {
+            msg.setText("DB Error: " + ex.getMessage());
         }
-        catch (SQLException e) {
-            System.out.println("Unable to create a connection to the database");
-            e.printStackTrace();
-            System.exit(0);
-        }
+    }
+    
+    public static void main(String[] args) throws Exception {
+        DatabaseConnection.getConnection();
         ProjectFrame myFrame=new ProjectFrame();
         myFrame.initialize();
     }
