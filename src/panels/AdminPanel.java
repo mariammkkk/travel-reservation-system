@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -24,6 +25,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 import app.ProjectFrame;
+import ui.AppStrings;
+import ui.AppTheme;
 import data.AdminRepo;
 import data.AdminRepo.CustomerRow;
 import data.AdminRepo.EmployeeRow;
@@ -44,17 +47,27 @@ public class AdminPanel extends JFrame {
 
     public void initialize() {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Travel Reservation — Administrator (#" + employeeId + ")");
+        setTitle(AppStrings.adminWindowTitle(employeeId));
+        getContentPane().setBackground(AppTheme.PAGE);
+        getContentPane().setLayout(new BorderLayout());
         setSize(680, 460);
         setLocationRelativeTo(null);
 
         JTextArea body = new JTextArea();
         body.setEditable(false);
         body.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        body.setLineWrap(true);
+        body.setWrapStyleWord(true);
         body.setText(
-                "Menus run live SQL against travel_reservation.\nUse File → Log out when finished.\n");
+                "Use the menu bar — each action queries or updates live data.\n"
+                        + "File → Log out returns to sign-in.\n");
 
-        add(new JScrollPane(body), BorderLayout.CENTER);
+        JScrollPane sp = AppTheme.wrapTextArea(body);
+        sp.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(16, 20, 20, 20),
+                BorderFactory.createLineBorder(AppTheme.STROKE)));
+
+        add(sp, BorderLayout.CENTER);
 
         JMenuBar bar = new JMenuBar();
         JMenu file = new JMenu("File");
@@ -89,6 +102,8 @@ public class AdminPanel extends JFrame {
         bar.add(reports);
 
         setJMenuBar(bar);
+        AppTheme.styleMenuBar(bar);
+        AppTheme.polishFrame(this);
         setVisible(true);
     }
 
@@ -108,7 +123,10 @@ public class AdminPanel extends JFrame {
         JTextArea ta = new JTextArea(txt, 18, 72);
         ta.setEditable(false);
         ta.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Report", JOptionPane.INFORMATION_MESSAGE);
+        AppTheme.styleTextArea(ta);
+        JScrollPane sp = new JScrollPane(ta);
+        sp.setBorder(BorderFactory.createLineBorder(AppTheme.STROKE));
+        JOptionPane.showMessageDialog(this, sp, "Report", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private String listCustomersText() throws SQLException {

@@ -4,10 +4,17 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import db.DatabaseConnection;
+import ui.AppStrings;
+import ui.AppTheme;
 
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            try {
+                AppTheme.install();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
             try {
                 DatabaseConnection.getConnection();
                 ProjectFrame frame = new ProjectFrame();
@@ -16,7 +23,7 @@ public class Main {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null,
                         "Could not start: " + e.getMessage(),
-                        "Travel Reservation",
+                        AppStrings.dialogTitle(),
                         JOptionPane.ERROR_MESSAGE);
             }
         });

@@ -2,7 +2,6 @@ package panels;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -16,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -45,6 +45,8 @@ import service.BookingService.PurchaseOutcome;
 import travel.FindFlights;
 import travel.FlightSearchResult;
 import travel.SortFlights;
+import ui.AppStrings;
+import ui.AppTheme;
 import ui.PurchaseDialogs;
 import ui.PurchaseDialogs.PurchaseInput;
 
@@ -73,8 +75,9 @@ public class CustomerPanel extends JFrame {
 
     public void initialize() {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Travel Reservation — Customer");
-        setLayout(new BorderLayout(8, 8));
+        setTitle(AppStrings.customerWindowTitle());
+        getContentPane().setBackground(AppTheme.PAGE);
+        setLayout(new BorderLayout(10, 10));
         setPreferredSize(new Dimension(940, 580));
         setMinimumSize(new Dimension(640, 420));
 
@@ -107,29 +110,48 @@ public class CustomerPanel extends JFrame {
         bar.add(trips);
 
         setJMenuBar(bar);
+        AppTheme.styleMenuBar(bar);
 
         JLabel welcome = buildWelcomeLabel();
-        welcome.setBorder(BorderFactory.createEmptyBorder(8, 8, 0, 8));
+        welcome.setBorder(BorderFactory.createEmptyBorder(10, 16, 4, 16));
         add(welcome, BorderLayout.NORTH);
 
         table = new JTable(new DefaultTableModel());
         table.setAutoCreateRowSorter(true);
         table.setFillsViewportHeight(true);
-        JScrollPane scroll = new JScrollPane(table);
-        scroll.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        AppTheme.styleTable(table);
+        JScrollPane scroll = AppTheme.wrapTable(table);
+        scroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(0, 14, 0, 14),
+                scroll.getBorder()));
         add(scroll, BorderLayout.CENTER);
 
-        JPanel south = new JPanel(new BorderLayout(4, 4));
-        south.setBorder(BorderFactory.createEmptyBorder(0, 8, 8, 8));
+        JPanel south = new JPanel(new BorderLayout(8, 8));
+        south.setOpaque(false);
+        south.setBorder(BorderFactory.createEmptyBorder(0, 14, 16, 14));
 
-        JPanel form = new JPanel(new GridLayout(4, 4, 6, 6));
+        JPanel planner = new JPanel(new BorderLayout(8, 10));
+        planner.setBackground(AppTheme.CARD);
+        planner.setBorder(BorderFactory.createCompoundBorder(
+                AppTheme.titled("Route search & refinement"),
+                BorderFactory.createEmptyBorder(8, 14, 14, 14)));
+
+        JPanel form = new JPanel(new GridLayout(4, 4, 6, 8));
+        form.setOpaque(false);
         tfFrom = new JTextField("EWR");
         tfTo = new JTextField("ORD");
         tfDepart = new JTextField("2026-05-01");
         tfReturn = new JTextField("2026-05-05");
+        AppTheme.styleTextField(tfFrom);
+        AppTheme.styleTextField(tfTo);
+        AppTheme.styleTextField(tfDepart);
+        AppTheme.styleTextField(tfReturn);
         cbRound = new JCheckBox("Round trip");
         cbFlexible = new JCheckBox("Flexible ±3 days");
         cbConnections = new JCheckBox("Include 1-stop connections");
+        AppTheme.styleCheckBox(cbRound);
+        AppTheme.styleCheckBox(cbFlexible);
+        AppTheme.styleCheckBox(cbConnections);
 
         form.add(label("From airport"));
         form.add(tfFrom);
@@ -143,11 +165,11 @@ public class CustomerPanel extends JFrame {
         form.add(cbFlexible);
         form.add(cbConnections);
 
-        JButton search = new JButton("Search flights");
+        JButton search = AppTheme.primaryButton("Search flights");
         search.addActionListener(e -> runSearch());
-        JButton purchaseBtn = new JButton("Buy selection");
+        JButton purchaseBtn = AppTheme.primaryButton("Buy selection");
         purchaseBtn.addActionListener(e -> purchaseSelected());
-        JButton waitBtn = new JButton("Waitlist selection");
+        JButton waitBtn = AppTheme.secondaryButton("Waitlist selection");
         waitBtn.addActionListener(e -> joinWaitlistSelected());
 
         form.add(search);
@@ -155,12 +177,17 @@ public class CustomerPanel extends JFrame {
         form.add(waitBtn);
         form.add(new JPanel());
 
-        JPanel sortStrip = new JPanel(new GridLayout(2, 1, 4, 4));
-        JPanel sortRow = new JPanel(new GridLayout(1, 4, 4, 4));
-        JButton bDep = new JButton("Reorder: depart ↑");
-        JButton bArr = new JButton("Reorder: arrive ↑");
-        JButton bDur = new JButton("Reorder: duration ↑");
-        JButton bFare = new JButton("Reorder: econ fare ↑");
+        JPanel sortStrip = new JPanel(new GridLayout(2, 1, 6, 6));
+        sortStrip.setOpaque(false);
+        JPanel sortRow = new JPanel(new GridLayout(1, 4, 6, 6));
+        sortRow.setOpaque(false);
+        JButton bDep = new JButton("Depart ↑");
+        JButton bArr = new JButton("Arrive ↑");
+        JButton bDur = new JButton("Duration ↑");
+        JButton bFare = new JButton("Fare ↑");
+        for (AbstractButton bb : new AbstractButton[] { bDep, bArr, bDur, bFare }) {
+            AppTheme.styleCompact(bb);
+        }
         bDep.addActionListener(e -> requerySort("ASC", true, false, false));
         bArr.addActionListener(e -> requerySort("ASC", false, true, false));
         bDur.addActionListener(e -> requeryDuration("ASC"));
@@ -168,6 +195,8 @@ public class CustomerPanel extends JFrame {
 
         JButton bDepDesc = new JButton("Depart ↓");
         JButton bFareDesc = new JButton("Fare ↓");
+        AppTheme.styleCompact(bDepDesc);
+        AppTheme.styleCompact(bFareDesc);
         bDepDesc.addActionListener(e -> requerySort("DESC", true, false, false));
         bFareDesc.addActionListener(e -> requeryFare("DESC"));
 
@@ -176,6 +205,7 @@ public class CustomerPanel extends JFrame {
         sortRow.add(bDur);
         sortRow.add(bFare);
         JPanel sortRow2 = new JPanel(new GridLayout(1, 3, 4, 4));
+        sortRow2.setOpaque(false);
         sortRow2.add(bDepDesc);
         sortRow2.add(bFareDesc);
         sortRow2.add(new JPanel());
@@ -184,14 +214,18 @@ public class CustomerPanel extends JFrame {
         sortStrip.add(sortRow2);
 
         JPanel filterRow = new JPanel(new GridLayout(1, 3, 4, 4));
+        filterRow.setOpaque(false);
         tfAirlineFilter = new JTextField();
         tfMaxPrice = new JTextField();
-        JButton applyFilter = new JButton("Apply filters");
-        JButton clearFilter = new JButton("Clear filters");
+        AppTheme.styleTextField(tfAirlineFilter);
+        AppTheme.styleTextField(tfMaxPrice);
+        JButton applyFilter = AppTheme.secondaryButton("Apply filters");
+        JButton clearFilter = AppTheme.secondaryButton("Clear");
         applyFilter.addActionListener(e -> applyCombinedFilters());
         clearFilter.addActionListener(e -> clearFilters());
 
         JPanel fil1 = new JPanel(new GridLayout(2, 2, 4, 4));
+        fil1.setOpaque(false);
         fil1.add(label("Airline contains"));
         fil1.add(tfAirlineFilter);
         fil1.add(label("Max economy fare"));
@@ -200,30 +234,31 @@ public class CustomerPanel extends JFrame {
         filterRow.setLayout(new BorderLayout());
         filterRow.add(fil1, BorderLayout.CENTER);
         JPanel fri = new JPanel(new GridLayout(2, 1, 4, 4));
+        fri.setOpaque(false);
         fri.add(applyFilter);
         fri.add(clearFilter);
         filterRow.add(fri, BorderLayout.EAST);
 
-        south.add(form, BorderLayout.NORTH);
-        south.add(sortStrip, BorderLayout.CENTER);
-        south.add(filterRow, BorderLayout.SOUTH);
+        planner.add(form, BorderLayout.NORTH);
+        planner.add(sortStrip, BorderLayout.CENTER);
+        planner.add(filterRow, BorderLayout.SOUTH);
+        south.add(planner, BorderLayout.CENTER);
 
         add(south, BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
+        AppTheme.polishFrame(this);
         setVisible(true);
     }
 
     private static JLabel label(String t) {
-        JLabel l = new JLabel(t);
-        l.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
-        return l;
+        return AppTheme.caption(t);
     }
 
     private JLabel buildWelcomeLabel() {
         JLabel welcome = new JLabel();
-        welcome.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        final int wrapW = 880;
         try {
             Connection c = DatabaseConnection.getConnection();
             try (PreparedStatement ps = c.prepareStatement(
@@ -233,16 +268,18 @@ public class CustomerPanel extends JFrame {
                     if (rs.next()) {
                         String fn = rs.getString("first_name");
                         String un = rs.getString("username");
-                        welcome.setText("Signed in as " + (fn != null ? fn : un) + " (" + un + ")");
+                        String line = "Signed in as " + (fn != null ? fn : un) + " (" + un + ")";
+                        welcome.setText(AppStrings.htmlWelcomeLine(line, wrapW, AppTheme.INK));
                         return welcome;
                     }
                 }
             }
         } catch (SQLException ex) {
-            welcome.setText("Customer #" + customerId + " (profile load failed)");
+            welcome.setText(AppStrings.htmlWelcomeLine(
+                    "Customer #" + customerId + " (profile load failed)", wrapW, AppTheme.INK));
             return welcome;
         }
-        welcome.setText("Customer #" + customerId);
+        welcome.setText(AppStrings.htmlWelcomeLine("Customer #" + customerId, wrapW, AppTheme.INK));
         return welcome;
     }
 
@@ -266,6 +303,7 @@ public class CustomerPanel extends JFrame {
     }
 
     private void tuneSorter() {
+        AppTheme.styleTable(table);
         TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
         table.setRowSorter(sorter);
         try {

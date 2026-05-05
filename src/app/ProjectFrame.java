@@ -1,16 +1,12 @@
 package app;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -22,80 +18,132 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import db.DatabaseConnection;
 import panels.AdminPanel;
 import panels.CustomerPanel;
 import panels.RepPanel;
+import ui.AppStrings;
+import ui.AppTheme;
 
 public class ProjectFrame extends JFrame {
 
-    private final Font mainFont = new Font(Font.SANS_SERIF, Font.BOLD, 18);
     private JTextField tfuser;
     private JPasswordField tfpasswd;
     private JLabel msg;
     private JComboBox<String> roleBox;
 
     public void initialize() {
-        JLabel lbuser = new JLabel("Username");
-        lbuser.setFont(mainFont);
+        setTitle(AppStrings.loginTitle());
+        getContentPane().setBackground(AppTheme.PAGE);
 
-        tfuser = new JTextField();
-        tfuser.setFont(mainFont);
+        JLabel brand = new JLabel(AppStrings.htmlAppTitle(AppTheme.ACCENT, 520));
 
-        JLabel lbpasswd = new JLabel("Password");
-        lbpasswd.setFont(mainFont);
+        JLabel tagline = new JLabel("<html><body style='width:520px;font-size:13pt;color:#"
+                + String.format("%06x", AppTheme.MUTED.getRGB() & 0xffffff)
+                + "'>Sign in with a customer account or an employee account.</body></html>");
 
-        tfpasswd = new JPasswordField();
-        tfpasswd.setFont(mainFont);
+        JPanel rust = new JPanel();
+        rust.setBackground(AppTheme.RUST);
+        rust.setPreferredSize(new Dimension(0, 3));
+        rust.setMaximumSize(new Dimension(Short.MAX_VALUE, 3));
 
-        JLabel lbrole = new JLabel("Login As");
-        lbrole.setFont(mainFont);
+        JPanel brandCol = new JPanel();
+        brandCol.setOpaque(false);
+        brandCol.setLayout(new BoxLayout(brandCol, BoxLayout.Y_AXIS));
+        brandCol.add(brand);
+        brandCol.add(Box.createVerticalStrut(2));
+        brandCol.add(tagline);
+        brandCol.add(Box.createVerticalStrut(10));
+        brandCol.add(rust);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(BorderFactory.createEmptyBorder(8, 0, 18, 0));
+        header.add(brandCol, BorderLayout.WEST);
+
+        JLabel lbuser = AppTheme.caption("Username");
+        tfuser = new JTextField(18);
+        AppTheme.styleTextField(tfuser);
+
+        JLabel lbpasswd = AppTheme.caption("Password");
+        tfpasswd = new JPasswordField(18);
+        AppTheme.stylePassword(tfpasswd);
+
+        JLabel lbrole = AppTheme.caption("Sign in as");
         roleBox = new JComboBox<>(new String[] { "Customer", "Employee" });
-        roleBox.setFont(mainFont);
+        AppTheme.styleCombo(roleBox);
 
-        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 5, 5));
-        inputPanel.setOpaque(false);
-        inputPanel.add(lbuser);
-        inputPanel.add(tfuser);
-        inputPanel.add(lbpasswd);
-        inputPanel.add(tfpasswd);
-        inputPanel.add(lbrole);
-        inputPanel.add(roleBox);
+        JPanel inputGrid = new JPanel(new GridLayout(3, 2, 14, 10));
+        inputGrid.setOpaque(false);
+        inputGrid.add(lbuser);
+        inputGrid.add(tfuser);
+        inputGrid.add(lbpasswd);
+        inputGrid.add(tfpasswd);
+        inputGrid.add(lbrole);
+        inputGrid.add(roleBox);
 
-        msg = new JLabel(" ");
-        msg.setFont(mainFont);
+        msg = new JLabel();
+        setFeedbackInfo(" ");
 
-        JButton btnLogin = new JButton("Login");
-        btnLogin.setFont(mainFont);
+        JButton btnLogin = AppTheme.primaryButton("Sign in");
         btnLogin.addActionListener(e -> doLogin());
 
-        JButton btnClear = new JButton("Clear");
-        btnClear.setFont(mainFont);
+        JButton btnClear = AppTheme.secondaryButton("Clear");
         btnClear.addActionListener(e -> {
             tfuser.setText("");
             tfpasswd.setText("");
-            msg.setText(" ");
+            setFeedbackInfo(" ");
         });
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 5, 5));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(btnLogin);
-        buttonPanel.add(btnClear);
+        JPanel rowBtn = new JPanel();
+        rowBtn.setOpaque(false);
+        rowBtn.setLayout(new BoxLayout(rowBtn, BoxLayout.X_AXIS));
+        rowBtn.add(Box.createHorizontalGlue());
+        rowBtn.add(btnClear);
+        rowBtn.add(Box.createHorizontalStrut(10));
+        rowBtn.add(btnLogin);
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(230, 140, 140));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        mainPanel.add(inputPanel, BorderLayout.NORTH);
-        mainPanel.add(msg, BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        JPanel formInner = new JPanel(new BorderLayout(0, 14));
+        formInner.setOpaque(false);
+        formInner.add(inputGrid, BorderLayout.NORTH);
+        formInner.add(msg, BorderLayout.CENTER);
+        formInner.add(rowBtn, BorderLayout.SOUTH);
 
-        add(mainPanel);
-        setTitle("Travel Reservation System - Login");
-        setSize(520, 300);
-        setMinimumSize(new Dimension(320, 220));
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(AppTheme.CARD);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.STROKE),
+                BorderFactory.createEmptyBorder(22, 28, 22, 28)));
+        card.add(formInner);
+
+        JPanel page = new JPanel(new BorderLayout(20, 0));
+        page.setOpaque(false);
+        page.setBorder(BorderFactory.createEmptyBorder(12, 28, 28, 28));
+        page.add(header, BorderLayout.NORTH);
+        page.add(card, BorderLayout.CENTER);
+
+        add(page);
+        setMinimumSize(new Dimension(520, 390));
+        setSize(620, 420);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        AppTheme.polishFrame(this);
         setVisible(true);
+    }
+
+    private static final int FEEDBACK_WRAP_W = 480;
+
+    private void setFeedbackInfo(String plain) {
+        msg.setText(AppStrings.htmlFeedback(plain, FEEDBACK_WRAP_W, AppTheme.MUTED));
+    }
+
+    private void setFeedbackError(String plain) {
+        msg.setText(AppStrings.htmlFeedback(plain == null ? "" : plain, FEEDBACK_WRAP_W, AppTheme.RUST.darker()));
     }
 
     private void doLogin() {
@@ -113,14 +161,14 @@ public class ProjectFrame extends JFrame {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) {
                             int customerId = rs.getInt("customer_id");
-                            msg.setText("Welcome " + username + "!");
+                            setFeedbackInfo("Welcome " + username + "!");
                             dispose();
                             new CustomerPanel(customerId).initialize();
                             return;
                         }
                     }
                 }
-                msg.setText("Unknown customer. Try again.");
+                setFeedbackError("Unknown customer.");
             } else {
                 try (PreparedStatement ps = con.prepareStatement(
                         "SELECT employee_id, is_admin FROM Employee WHERE username=? AND password=?")) {
@@ -130,7 +178,7 @@ public class ProjectFrame extends JFrame {
                         if (rs.next()) {
                             int employeeId = rs.getInt("employee_id");
                             boolean isAdmin = rs.getBoolean("is_admin");
-                            msg.setText("Welcome " + username + "!");
+                            setFeedbackInfo("Welcome " + username + "!");
                             dispose();
                             if (isAdmin) {
                                 new AdminPanel(employeeId).initialize();
@@ -141,16 +189,17 @@ public class ProjectFrame extends JFrame {
                         }
                     }
                 }
-                msg.setText("Unknown employee. Try again.");
+                setFeedbackError("Unknown employee.");
             }
         } catch (SQLException ex) {
-            msg.setText("DB error: " + ex.getMessage());
+            setFeedbackError(ex.getMessage());
         }
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
+                AppTheme.install();
                 DatabaseConnection.getConnection();
                 ProjectFrame frame = new ProjectFrame();
                 frame.initialize();
@@ -158,7 +207,7 @@ public class ProjectFrame extends JFrame {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null,
                         "Could not connect to database: " + e.getMessage(),
-                        "Travel Reservation",
+                        AppStrings.dialogTitle(),
                         JOptionPane.ERROR_MESSAGE);
             }
         });

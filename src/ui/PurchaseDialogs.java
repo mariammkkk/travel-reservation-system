@@ -26,20 +26,25 @@ public final class PurchaseDialogs {
      */
     public static PurchaseInput prompt(Component parent, String title, int segments) {
         JPanel panel = new JPanel(new GridLayout(0, 2, 6, 6));
+        panel.setBackground(AppTheme.PAGE);
         JComboBox<String> clazz = new JComboBox<>(new String[] { "economy", "business", "first" });
+        AppTheme.styleCombo(clazz);
         JTextField meal = new JTextField(16);
+        AppTheme.styleTextField(meal);
         JTextField fee = new JTextField("25.00", 8);
+        AppTheme.styleTextField(fee);
         List<JTextField> seatFields = new ArrayList<>();
-        panel.add(new JLabel("Class"));
+        panel.add(AppTheme.caption("Class"));
         panel.add(clazz);
-        panel.add(new JLabel("Special meal (optional)"));
+        panel.add(AppTheme.caption("Special meal (optional)"));
         panel.add(meal);
-        panel.add(new JLabel("Booking fee (company)"));
+        panel.add(AppTheme.caption("Booking fee (company)"));
         panel.add(fee);
         for (int i = 1; i <= segments; i++) {
             JTextField s = new JTextField(8);
+            AppTheme.styleTextField(s);
             seatFields.add(s);
-            panel.add(new JLabel("Seat leg " + i));
+            panel.add(AppTheme.caption("Seat leg " + i));
             panel.add(s);
         }
         int res = JOptionPane.showConfirmDialog(parent, panel, title, JOptionPane.OK_CANCEL_OPTION,

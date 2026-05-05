@@ -24,7 +24,11 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
+import javax.swing.BorderFactory;
+
 import app.ProjectFrame;
+import ui.AppStrings;
+import ui.AppTheme;
 import data.RepRepo;
 import db.DatabaseConnection;
 import service.BookingService;
@@ -48,16 +52,25 @@ public class RepPanel extends JFrame {
 
     public void initialize() {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setTitle("Travel Reservation — Representative (#" + employeeId + ")");
+        setTitle(AppStrings.repWindowTitle(employeeId));
+        getContentPane().setBackground(AppTheme.PAGE);
+        getContentPane().setLayout(new BorderLayout());
         setSize(700, 440);
         setLocationRelativeTo(null);
 
         JTextArea body = new JTextArea();
         body.setEditable(false);
         body.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        body.setText("Representative tools: reservations, edits, fleet/airport/flight upkeep, waiting lists.");
+        body.setLineWrap(true);
+        body.setWrapStyleWord(true);
+        body.setText("Operations and maintenance menus run against the live inventory.\n"
+                + "File → Log out returns to sign-in.\n");
 
-        add(new JScrollPane(body), BorderLayout.CENTER);
+        JScrollPane sp = AppTheme.wrapTextArea(body);
+        sp.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(16, 20, 20, 20),
+                BorderFactory.createLineBorder(AppTheme.STROKE)));
+        add(sp, BorderLayout.CENTER);
 
         JMenuBar bar = new JMenuBar();
 
@@ -92,6 +105,8 @@ public class RepPanel extends JFrame {
         bar.add(mant);
 
         setJMenuBar(bar);
+        AppTheme.styleMenuBar(bar);
+        AppTheme.polishFrame(this);
         setVisible(true);
     }
 
@@ -110,7 +125,11 @@ public class RepPanel extends JFrame {
     private void showRows(String text) {
         JTextArea ta = new JTextArea(text == null ? "" : text, 20, 90);
         ta.setEditable(false);
-        JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Data", JOptionPane.INFORMATION_MESSAGE);
+        ta.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        AppTheme.styleTextArea(ta);
+        JScrollPane sp = new JScrollPane(ta);
+        sp.setBorder(BorderFactory.createLineBorder(AppTheme.STROKE));
+        JOptionPane.showMessageDialog(this, sp, "Data", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void reserveForCustomer() throws SQLException {
@@ -168,7 +187,9 @@ public class RepPanel extends JFrame {
         int order = Integer.parseInt(seg.trim());
         JTextField seat = new JTextField();
         JTextField meal = new JTextField();
-        JPanel p = pairForm(new JLabel("Seat"), seat, new JLabel("Meal"), meal);
+        AppTheme.styleTextField(seat);
+        AppTheme.styleTextField(meal);
+        JPanel p = pairForm(AppTheme.caption("Seat"), seat, AppTheme.caption("Meal"), meal);
         if ( JOptionPane.showConfirmDialog(this, p, "Update leg", JOptionPane.OK_CANCEL_OPTION)
                 != JOptionPane.OK_OPTION) {
             return;
@@ -179,6 +200,7 @@ public class RepPanel extends JFrame {
 
     private JPanel pairForm(JLabel la, JTextField a, JLabel lb, JTextField b) {
         JPanel p = new JPanel(new GridLayout(0, 2, 6, 6));
+        p.setBackground(AppTheme.PAGE);
         p.add(la);
         p.add(a);
         p.add(lb);
