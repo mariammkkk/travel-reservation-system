@@ -29,6 +29,8 @@ import javax.swing.BorderFactory;
 import app.ProjectFrame;
 import ui.AppStrings;
 import ui.AppTheme;
+import data.AdminRepo;
+import data.QuestionRepo;
 import data.RepRepo;
 import db.DatabaseConnection;
 import service.BookingService;
@@ -85,7 +87,13 @@ public class RepPanel extends JFrame {
         svc.add(act("Edit reservation (seat/meal)…", this::editSeatMeal));
         svc.addSeparator();
         svc.add(act("Waiting list…", this::waitingList));
+        svc.add(act("Flights at airport (arrivals & departures)…", this::flightsServingAirport));
         bar.add(svc);
+
+        JMenu helpdesk = new JMenu("Customer support");
+        helpdesk.add(act("View open customer questions…", this::showOpenQuestions));
+        helpdesk.add(act("Reply to a question…", this::replyToQuestion));
+        bar.add(helpdesk);
 
         JMenu mant = new JMenu("Maintain");
         mant.add(act("List aircraft", () -> showRows(RepRepo.listAircraftRows(DatabaseConnection.getConnection()))));
@@ -216,6 +224,47 @@ public class RepPanel extends JFrame {
         }
         showRows(RepRepo.formatWaitingList(DatabaseConnection.getConnection(), al,
                 Integer.parseInt(fn.trim())));
+    }
+
+    private void flightsServingAirport() throws SQLException {
+        String ap = JOptionPane.showInputDialog(this, "Airport code:", "ORD");
+        if (ap == null || ap.isBlank()) {
+            return;
+        }
+        showRows(AdminRepo.flightsServingAirport(DatabaseConnection.getConnection(), ap));
+    }
+
+    private void showOpenQuestions() throws SQLException {
+        String text = QuestionRepo.formatOpenQuestions(DatabaseConnection.getConnection());
+        JTextArea ta = new JTextArea(text, 22, 80);
+        ta.setEditable(false);
+        JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Open customer questions",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void replyToQuestion() throws SQLException {
+        String idStr = JOptionPane.showInputDialog(this, "Question id (from Customer support → View open questions):");
+        if (idStr == null || idStr.isBlank()) {
+            return;
+        }
+        int qid;
+        try {
+            qid = Integer.parseInt(idStr.trim());
+        } catch (NumberFormatException nf) {
+            JOptionPane.showMessageDialog(this, "Enter a numeric id.", "Reply", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        JTextArea ans = new JTextArea(8, 44);
+        ans.setLineWrap(true);
+        ans.setWrapStyleWord(true);
+        if ( JOptionPane.showConfirmDialog(this, new JScrollPane(ans), "Your reply",
+                JOptionPane.OK_CANCEL_OPTION)
+                != JOptionPane.OK_OPTION) {
+            return;
+        }
+        QuestionRepo.answerQuestion(DatabaseConnection.getConnection(), qid, employeeId, ans.getText());
+        JOptionPane.showMessageDialog(this, "Reply recorded. Customer can read it under My questions & answers.",
+                "Reply", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void addAircraft() throws SQLException {

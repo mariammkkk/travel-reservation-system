@@ -19,7 +19,7 @@ An E-R diagram, if you maintain one for documentation, is not part of this tree.
 
 ## Schema overview
 
-The relational model covers airlines, aircraft, airports, flights, tickets (with per-leg detail), customers, and employees. **`Includes`** links tickets to flight segments; **`WaitingList`** stores queue requests per flight. Referential integrity is enforced in `sql/schema.sql`.
+The relational model covers airlines, aircraft, airports, flights, tickets (with per-leg detail), customers, and employees. **`Includes`** links tickets to flight segments; **`WaitingList`** stores queue requests per flight. **`CustomerAlert`** stores in-app notices (e.g. waitlist seat opened after a cancellation); **`CustomerQuestion`** stores customer questions and representative answers. Referential integrity is enforced in `sql/schema.sql`.
 
 ## Features by role
 
@@ -27,9 +27,10 @@ The relational model covers airlines, aircraft, airports, flights, tickets (with
 
 - Search: one-way, round-trip (combined result set), and flexible date (±3 days).
 - Optional **one-stop (indirect)** itineraries in search; direct flights always included.
-- Sort (e.g. departure, arrival, duration, economy fare) and filter (airline substring, maximum economy fare).
+- Sort (e.g. departure, arrival, duration, economy fare) and filter (airline substring, maximum economy fare, nonstop vs one-stop, local **departure/arrival clock** windows `HH:mm`).
 - Purchase ticket(s): economy / business / first, seat(s) per leg, meal, booking fee; inventory decremented on `Flight`.
-- Waitlist enqueue per flight leg when desired or when purchase finds no seats.
+- Waitlist enqueue per flight leg when desired or when purchase finds no seats. When a cancellation **re-opens the last seat** in a cabin (0 → 1), matching waitlist customers get a **`CustomerAlert`**; they are prompted at next login and can open **Support → Notifications**.
+- **Support:** post a question to representatives; read answers under **My questions & answers**.
 - Cancel own ticket only; economy cancellations require acknowledging a cancellation fee in the UI; business/first may cancel without that step.
 - View past vs upcoming reservations (from `Ticket` / first-leg timing).
 
@@ -39,6 +40,8 @@ The relational model covers airlines, aircraft, airports, flights, tickets (with
 - Edit reservation: update seat and meal on a chosen `Includes` segment.
 - Maintain aircraft, airports, and flights (list / add / update / delete via forms).
 - View waiting list for a given flight (airline + flight number).
+- List **all flights serving an airport** (departures and arrivals) via **Operations → Flights at airport**.
+- Answer customer questions (**Customer support** menu → view open threads, reply by question id).
 
 **Administrator**
 
@@ -70,15 +73,30 @@ out/                    -- compiled `.class` output (local; often gitignored)
 - MySQL Server
 - MySQL Connector/J JAR in `lib/` (e.g. `mysql-connector-j-9.7.0.jar`; filename must match your `javac` / `java` classpath)
 
-On Ubuntu/Pop!_OS, MySQL `root` often uses socket authentication. Creating a dedicated MySQL user with a password for the application avoids JDBC login issues.
+On Ubuntu/Pop!_OS, MySQL `root` often uses **socket authentication**. The app’s default JDBC settings (`root` + empty password) then fail with **Access denied**. Use **`sudo mysql`** to administer the server, and create a **separate MySQL user with a password** for the Swing app (`TRAVEL_DB_USER` / `TRAVEL_DB_PASSWORD`).
+
+Quick setup (once):
+
+```bash
+sudo mysql < sql/create_mysql_app_user.sql
+sudo mysql travel_reservation < sql/schema.sql
+export TRAVEL_DB_USER='trs'
+export TRAVEL_DB_PASSWORD='trs_dev_pass'
+```
+
+Re-run **`create_mysql_app_user.sql`** anytime to reset user `trs`’s password to `trs_dev_pass` if you forgot it or typo’d `TRAVEL_DB_PASSWORD`.
+
+If `schema.sql` was already loaded as `root`, you can skip the second schema line and only export the credentials.
 
 ## Database setup
 
-From the repository root:
+From the repository root (when you already have a password-capable MySQL user):
 
 ```bash
 mysql -u YOUR_USER -p < sql/schema.sql
 ```
+
+If you already created the database from an older `schema.sql`, run `sql/patch_customer_support.sql` once to add **`CustomerAlert`** and **`CustomerQuestion`**.
 
 Use a user that can create the database or run against an existing empty `travel_reservation` database as appropriate. After loading, seeded **application** logins (the Swing login form, not MySQL) are:
 
@@ -94,7 +112,7 @@ Optional environment variables (see `src/db/DatabaseConnection.java`):
 
 | Variable | Purpose |
 |----------|---------|
-| `TRAVEL_DB_URL` | JDBC URL (default `jdbc:mysql://localhost:3306/travel_reservation?useSSL=false&serverTimezone=UTC`) |
+| `TRAVEL_DB_URL` | JDBC URL (default includes `allowPublicKeyRetrieval=true` for MySQL 8 `caching_sha2_password`; omit only if you’ve switched the user to `mysql_native_password`) |
 | `TRAVEL_DB_USER` | MySQL user (default `root`) |
 | `TRAVEL_DB_PASSWORD` | MySQL password (default empty string) |
 
@@ -121,4 +139,4 @@ Windows: use `;` instead of `:` in the `-cp` argument.
 - **Economy policy:** Changing an economy reservation (beyond cancel flow) is not implemented; cancel uses a confirmation step rather than a separate fee ledger in the database.
 - **Sorting after search:** Re-sort buttons that reload from SQL align itinerary metadata only for **direct** flights; use **Search** again before purchasing connection rows after heavy re-sorting.
 - **Representative edits:** Seat and meal only; fare class changes that would alter inventory are not handled.
-- **Waitlist promotion:** Rows are stored; automatic reassignment when a seat frees is not implemented.
+- **Waitlist promotion:** Customers are **not** auto-booked when a seat frees; they receive an in-app **alert** (and must purchase manually). Email/SMS is not implemented.

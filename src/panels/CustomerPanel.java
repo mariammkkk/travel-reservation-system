@@ -11,6 +11,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +22,7 @@ import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -38,6 +42,8 @@ import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 import app.ProjectFrame;
+import data.AlertRepo;
+import data.QuestionRepo;
 import db.DatabaseConnection;
 import service.BookingService;
 import service.BookingService.FlightLeg;
@@ -66,6 +72,11 @@ public class CustomerPanel extends JFrame {
     private JCheckBox cbRound;
     private JCheckBox cbFlexible;
     private JCheckBox cbConnections;
+    private JComboBox<String> cbStopsFilter;
+    private JTextField tfDepAfter;
+    private JTextField tfDepBefore;
+    private JTextField tfArrAfter;
+    private JTextField tfArrBefore;
 
     private List<List<FlightLeg>> currentItineraries = Collections.emptyList();
 
@@ -108,6 +119,18 @@ public class CustomerPanel extends JFrame {
         trips.add(upcoming);
         trips.add(past);
         bar.add(trips);
+
+        JMenu support = new JMenu("Support");
+        JMenuItem alerts = new JMenuItem("Notifications (waitlist & seats)…");
+        alerts.addActionListener(e -> showNotificationsManual());
+        JMenuItem ask = new JMenuItem("Ask a question…");
+        ask.addActionListener(e -> askQuestion());
+        JMenuItem myQ = new JMenuItem("My questions & answers…");
+        myQ.addActionListener(e -> viewMyQuestions());
+        support.add(alerts);
+        support.add(ask);
+        support.add(myQ);
+        bar.add(support);
 
         setJMenuBar(bar);
         AppTheme.styleMenuBar(bar);
@@ -239,9 +262,39 @@ public class CustomerPanel extends JFrame {
         fri.add(clearFilter);
         filterRow.add(fri, BorderLayout.EAST);
 
+        cbStopsFilter = new JComboBox<>(new String[] { "Any stops", "Nonstop only", "1 stop only" });
+        AppTheme.styleCombo(cbStopsFilter);
+        tfDepAfter = new JTextField();
+        tfDepBefore = new JTextField();
+        tfArrAfter = new JTextField();
+        tfArrBefore = new JTextField();
+        for (JTextField t : new JTextField[] { tfDepAfter, tfDepBefore, tfArrAfter, tfArrBefore }) {
+            AppTheme.styleTextField(t);
+        }
+
+        JPanel extraFilterStrip = new JPanel(new GridLayout(3, 4, 6, 6));
+        extraFilterStrip.setOpaque(false);
+        extraFilterStrip.add(label("Stops"));
+        extraFilterStrip.add(cbStopsFilter);
+        extraFilterStrip.add(label("Depart ≥ (HH:mm)"));
+        extraFilterStrip.add(tfDepAfter);
+        extraFilterStrip.add(label("Depart ≤ (HH:mm)"));
+        extraFilterStrip.add(tfDepBefore);
+        extraFilterStrip.add(label("Arrive ≥ (HH:mm)"));
+        extraFilterStrip.add(tfArrAfter);
+        extraFilterStrip.add(label("Arrive ≤ (HH:mm)"));
+        extraFilterStrip.add(tfArrBefore);
+        extraFilterStrip.add(new JPanel());
+        extraFilterStrip.add(new JPanel());
+
+        JPanel filtersAll = new JPanel(new BorderLayout(0, 8));
+        filtersAll.setOpaque(false);
+        filtersAll.add(filterRow, BorderLayout.NORTH);
+        filtersAll.add(extraFilterStrip, BorderLayout.CENTER);
+
         planner.add(form, BorderLayout.NORTH);
         planner.add(sortStrip, BorderLayout.CENTER);
-        planner.add(filterRow, BorderLayout.SOUTH);
+        planner.add(filtersAll, BorderLayout.SOUTH);
         south.add(planner, BorderLayout.CENTER);
 
         add(south, BorderLayout.SOUTH);
@@ -250,6 +303,79 @@ public class CustomerPanel extends JFrame {
         setLocationRelativeTo(null);
         AppTheme.polishFrame(this);
         setVisible(true);
+        SwingUtilities.invokeLater(this::showUnreadAlertsIfAny);
+    }
+
+    private void showUnreadAlertsIfAny() {
+        try {
+            Connection c = DatabaseConnection.getConnection();
+            if (!AlertRepo.hasUnread(c, customerId)) {
+                return;
+            }
+            List<String> lines = AlertRepo.unreadLines(c, customerId);
+            String full = String.join("\n", lines);
+            JTextArea ta = new JTextArea(full, 14, 52);
+            ta.setEditable(false);
+            ta.setLineWrap(true);
+            ta.setWrapStyleWord(true);
+            JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Seat availability (waitlist)",
+                    JOptionPane.INFORMATION_MESSAGE);
+            AlertRepo.markAllRead(c, customerId);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Notifications", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showNotificationsManual() {
+        try {
+            Connection c = DatabaseConnection.getConnection();
+            List<String> lines = AlertRepo.unreadLines(c, customerId);
+            if (lines.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No unread notifications.", "Notifications",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            String full = String.join("\n", lines);
+            JTextArea ta = new JTextArea(full, 14, 52);
+            ta.setEditable(false);
+            JOptionPane.showMessageDialog(this, new JScrollPane(ta), "Notifications",
+                    JOptionPane.INFORMATION_MESSAGE);
+            AlertRepo.markAllRead(c, customerId);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Notifications", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void askQuestion() {
+        JTextArea ta = new JTextArea(7, 44);
+        ta.setLineWrap(true);
+        ta.setWrapStyleWord(true);
+        int r = JOptionPane.showConfirmDialog(this, new JScrollPane(ta), "Question to a representative",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (r != JOptionPane.OK_OPTION) {
+            return;
+        }
+        try {
+            Connection c = DatabaseConnection.getConnection();
+            QuestionRepo.insertQuestion(c, customerId, ta.getText());
+            JOptionPane.showMessageDialog(this, "Your question was posted.", "Support",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Support", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void viewMyQuestions() {
+        try {
+            Connection c = DatabaseConnection.getConnection();
+            String text = QuestionRepo.formatMyQuestions(c, customerId);
+            JTextArea ta = new JTextArea(text, 16, 56);
+            ta.setEditable(false);
+            JOptionPane.showMessageDialog(this, new JScrollPane(ta), "My questions & answers",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Support", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private static JLabel label(String t) {
@@ -314,6 +440,21 @@ public class CustomerPanel extends JFrame {
     }
 
     private void applyCombinedFilters() {
+        LocalTime depAfter;
+        LocalTime depBefore;
+        LocalTime arrAfter;
+        LocalTime arrBefore;
+        try {
+            depAfter = parseOptionalClock(tfDepAfter);
+            depBefore = parseOptionalClock(tfDepBefore);
+            arrAfter = parseOptionalClock(tfArrAfter);
+            arrBefore = parseOptionalClock(tfArrBefore);
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(this, "Use clock times like 08:00 or 14:30 for filters.", "Filters",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         TableRowSorter<TableModel> sorter = table.getRowSorter() instanceof TableRowSorter
                 ? (TableRowSorter<TableModel>) table.getRowSorter()
                 : null;
@@ -347,6 +488,68 @@ public class CustomerPanel extends JFrame {
             }
         }
 
+        int stopSel = cbStopsFilter.getSelectedIndex();
+        if (stopSel == 1) {
+            filters.add(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    Object v = entry.getValue(1);
+                    return v == null || !v.toString().contains(" / ");
+                }
+            });
+        } else if (stopSel == 2) {
+            filters.add(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    Object v = entry.getValue(1);
+                    return v != null && v.toString().contains(" / ");
+                }
+            });
+        }
+
+        if (depAfter != null || depBefore != null) {
+            final LocalTime da = depAfter;
+            final LocalTime db = depBefore;
+            filters.add(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    Object o = entry.getValue(4);
+                    if (!(o instanceof Timestamp ts)) {
+                        return true;
+                    }
+                    LocalTime lt = ts.toLocalDateTime().toLocalTime();
+                    if (da != null && lt.isBefore(da)) {
+                        return false;
+                    }
+                    if (db != null && lt.isAfter(db)) {
+                        return false;
+                    }
+                    return true;
+                }
+            });
+        }
+        if (arrAfter != null || arrBefore != null) {
+            final LocalTime aa = arrAfter;
+            final LocalTime ab = arrBefore;
+            filters.add(new RowFilter<TableModel, Integer>() {
+                @Override
+                public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
+                    Object o = entry.getValue(5);
+                    if (!(o instanceof Timestamp ts)) {
+                        return true;
+                    }
+                    LocalTime lt = ts.toLocalDateTime().toLocalTime();
+                    if (aa != null && lt.isBefore(aa)) {
+                        return false;
+                    }
+                    if (ab != null && lt.isAfter(ab)) {
+                        return false;
+                    }
+                    return true;
+                }
+            });
+        }
+
         if (filters.isEmpty()) {
             sorter.setRowFilter(null);
         } else if (filters.size() == 1) {
@@ -356,9 +559,29 @@ public class CustomerPanel extends JFrame {
         }
     }
 
+    /**
+     * Empty field → null; otherwise parses {@code HH:mm} or {@code H:mm}.
+     */
+    private static LocalTime parseOptionalClock(JTextField tf) {
+        String s = tf.getText().trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(s, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (DateTimeParseException ignored) {
+            return LocalTime.parse(s, DateTimeFormatter.ofPattern("H:mm"));
+        }
+    }
+
     private void clearFilters() {
         tfAirlineFilter.setText("");
         tfMaxPrice.setText("");
+        tfDepAfter.setText("");
+        tfDepBefore.setText("");
+        tfArrAfter.setText("");
+        tfArrBefore.setText("");
+        cbStopsFilter.setSelectedIndex(0);
         if (table.getRowSorter() instanceof TableRowSorter) {
             TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) table.getRowSorter();
             sorter.setRowFilter(null);

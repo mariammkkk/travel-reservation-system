@@ -70,6 +70,22 @@ public final class BookingService {
         };
     }
 
+    private static int remainingSeatsForClass(Connection c, String airlineId, int flightNumber, String travelClass)
+            throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT economy_seats_remaining, business_seats_remaining, first_seats_remaining FROM Flight "
+                        + "WHERE airline_id=? AND flight_number=?")) {
+            ps.setString(1, airlineId);
+            ps.setInt(2, flightNumber);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return 0;
+                }
+                return remainingForClass(rs, travelClass);
+            }
+        }
+    }
+
     private static final String SELECT_FLIGHT_FOR_UPDATE = "SELECT base_price_economy, base_price_business, "
             + "base_price_first, economy_seats_remaining, business_seats_remaining, first_seats_remaining "
             + "FROM Flight WHERE airline_id = ? AND flight_number = ? FOR UPDATE";
@@ -216,10 +232,15 @@ public final class BookingService {
                 String airline = (String) row[0];
                 int fn = (int) row[1];
                 String clazz = (String) row[2];
+                int before = remainingSeatsForClass(c, airline, fn, clazz);
                 try (PreparedStatement up = c.prepareStatement(incrementSql(clazz))) {
                     up.setString(1, airline);
                     up.setInt(2, fn);
                     up.executeUpdate();
+                }
+                int after = remainingSeatsForClass(c, airline, fn, clazz);
+                if (before == 0 && after > 0) {
+                    WaitlistAlerts.notifySeatOpened(c, airline, fn, clazz);
                 }
             }
             try (PreparedStatement del = c.prepareStatement("DELETE FROM Ticket WHERE ticket_number=?")) {
