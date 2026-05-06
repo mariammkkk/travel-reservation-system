@@ -265,6 +265,39 @@ public final class RepRepo {
         return sb.isEmpty() ? "(none)\n" : sb.toString();
     }
 
+    /** All columns for flights that depart from or arrive at the given airport (same layout as {@link #listFlightRows}). */
+    public static String listFlightRowsAtAirport(Connection c, String airportId) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        String sql = "SELECT airline_id, flight_number, aircraft_id, departure_airport, destination_airport, "
+                + "departure_time, arrival_time, is_international, economy_seats_remaining, "
+                + "business_seats_remaining, first_seats_remaining, base_price_economy, base_price_business, "
+                + "base_price_first FROM Flight WHERE departure_airport = ? OR destination_airport = ? "
+                + "ORDER BY departure_time";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            String a = airportId.toUpperCase();
+            ps.setString(1, a);
+            ps.setString(2, a);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sb.append(rs.getString("airline_id")).append(" ").append(rs.getInt("flight_number"))
+                            .append(" ac ").append(rs.getInt("aircraft_id")).append(" ")
+                            .append(rs.getString("departure_airport")).append("→")
+                            .append(rs.getString("destination_airport")).append(" dep ")
+                            .append(rs.getTimestamp("departure_time")).append(" arr ")
+                            .append(rs.getTimestamp("arrival_time")).append(" intl ")
+                            .append(rs.getBoolean("is_international")).append(" rem ec/b/f ")
+                            .append(rs.getInt("economy_seats_remaining")).append("/")
+                            .append(rs.getInt("business_seats_remaining")).append("/")
+                            .append(rs.getInt("first_seats_remaining")).append(" $ ")
+                            .append(rs.getBigDecimal("base_price_economy")).append("/")
+                            .append(rs.getBigDecimal("base_price_business")).append("/")
+                            .append(rs.getBigDecimal("base_price_first")).append("\n");
+                }
+            }
+        }
+        return sb.isEmpty() ? "(no flights touch that airport)\n" : sb.toString();
+    }
+
     public static Timestamp parseDateTime(String raw) throws SQLException {
         String t = raw.trim();
         try {

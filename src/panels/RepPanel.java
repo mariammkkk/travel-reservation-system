@@ -107,6 +107,7 @@ public class RepPanel extends JFrame {
         mant.add(act("Delete airport…", this::deleteAirport));
         mant.addSeparator();
         mant.add(act("List flights", () -> showRows(RepRepo.listFlightRows(DatabaseConnection.getConnection()))));
+        mant.add(act("List flights at airport…", this::listMaintainFlightsAtAirport));
         mant.add(act("Add flight…", () -> flightForm(true)));
         mant.add(act("Update flight…", () -> flightForm(false)));
         mant.add(act("Delete flight…", this::deleteFlight));
@@ -236,6 +237,15 @@ public class RepPanel extends JFrame {
             return;
         }
         showRows(AdminRepo.flightsServingAirport(DatabaseConnection.getConnection(), ap));
+    }
+
+    /** Full flight row text (seats, fares) limited to one airport — Maintain menu. */
+    private void listMaintainFlightsAtAirport() throws SQLException {
+        String ap = JOptionPane.showInputDialog(this, "List flights departing or arriving at airport:", "ORD");
+        if (ap == null || ap.isBlank()) {
+            return;
+        }
+        showRows(RepRepo.listFlightRowsAtAirport(DatabaseConnection.getConnection(), ap.trim()));
     }
 
     private void showOpenQuestions() throws SQLException {
