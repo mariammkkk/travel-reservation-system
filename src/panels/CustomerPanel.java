@@ -89,8 +89,8 @@ public class CustomerPanel extends JFrame {
         setTitle(AppStrings.customerWindowTitle());
         getContentPane().setBackground(AppTheme.PAGE);
         setLayout(new BorderLayout(10, 10));
-        setPreferredSize(new Dimension(940, 580));
-        setMinimumSize(new Dimension(640, 420));
+        setPreferredSize(new Dimension(1100, 720));
+        setMinimumSize(new Dimension(900, 600));
 
         JMenuBar bar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
@@ -302,6 +302,7 @@ public class CustomerPanel extends JFrame {
         pack();
         setLocationRelativeTo(null);
         AppTheme.polishFrame(this);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setVisible(true);
         SwingUtilities.invokeLater(this::showUnreadAlertsIfAny);
     }

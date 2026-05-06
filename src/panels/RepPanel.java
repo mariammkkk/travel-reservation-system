@@ -57,7 +57,8 @@ public class RepPanel extends JFrame {
         setTitle(AppStrings.repWindowTitle(employeeId));
         getContentPane().setBackground(AppTheme.PAGE);
         getContentPane().setLayout(new BorderLayout());
-        setSize(700, 440);
+        setSize(980, 680);
+        setMinimumSize(new java.awt.Dimension(900, 600));
         setLocationRelativeTo(null);
 
         JTextArea body = new JTextArea();
@@ -116,6 +117,7 @@ public class RepPanel extends JFrame {
         setJMenuBar(bar);
         AppTheme.styleMenuBar(bar);
         AppTheme.polishFrame(this);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setVisible(true);
     }
 

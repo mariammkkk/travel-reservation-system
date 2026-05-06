@@ -50,7 +50,8 @@ public class AdminPanel extends JFrame {
         setTitle(AppStrings.adminWindowTitle(employeeId));
         getContentPane().setBackground(AppTheme.PAGE);
         getContentPane().setLayout(new BorderLayout());
-        setSize(680, 460);
+        setSize(980, 680);
+        setMinimumSize(new java.awt.Dimension(900, 600));
         setLocationRelativeTo(null);
 
         JTextArea body = new JTextArea();
@@ -104,6 +105,7 @@ public class AdminPanel extends JFrame {
         setJMenuBar(bar);
         AppTheme.styleMenuBar(bar);
         AppTheme.polishFrame(this);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setVisible(true);
     }
 
