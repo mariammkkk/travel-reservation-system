@@ -94,15 +94,12 @@ public final class BookingService {
      * Books one ticket covering one or more legs in a single transaction.
      */
     public static PurchaseOutcome purchaseItinerary(Connection c, int customerId, List<FlightLeg> legs,
-            String travelClass, List<String> seatNumbers, String meal, BigDecimal bookingFee)
-            throws SQLException {
+        String travelClass, List<String> seatNumbers, String meal, BigDecimal bookingFee,
+        boolean roundTrip)  // <-- add this
+        throws SQLException {
 
-        if (legs.isEmpty()) {
-            return PurchaseOutcome.ERROR;
-        }
-        if (seatNumbers.size() != legs.size()) {
-            return PurchaseOutcome.ERROR;
-        }
+        if (legs.isEmpty()) return PurchaseOutcome.ERROR;
+        if (seatNumbers.size() != legs.size()) return PurchaseOutcome.ERROR;
 
         boolean auto = c.getAutoCommit();
         c.setAutoCommit(false);
@@ -113,14 +110,8 @@ public final class BookingService {
                     ps.setString(1, leg.airlineId());
                     ps.setInt(2, leg.flightNumber());
                     try (ResultSet rs = ps.executeQuery()) {
-                        if (!rs.next()) {
-                            c.rollback();
-                            return PurchaseOutcome.ERROR;
-                        }
-                        if (remainingForClass(rs, travelClass) <= 0) {
-                            c.rollback();
-                            return PurchaseOutcome.SOLD_OUT;
-                        }
+                        if (!rs.next()) { c.rollback(); return PurchaseOutcome.ERROR; }
+                        if (remainingForClass(rs, travelClass) <= 0) { c.rollback(); return PurchaseOutcome.SOLD_OUT; }
                         fareSum = fareSum.add(fareForClass(rs, travelClass));
                     }
                 }
@@ -132,15 +123,12 @@ public final class BookingService {
                     + "VALUES (?,?,?,?)";
             try (PreparedStatement ps = c.prepareStatement(insTicket, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setInt(1, customerId);
-                ps.setString(2, "one_way");
+                ps.setString(2, roundTrip ? "round_trip" : "one_way");  // <-- fix here
                 ps.setBigDecimal(3, fareSum.setScale(2, RoundingMode.HALF_UP));
                 ps.setBigDecimal(4, bf);
                 ps.executeUpdate();
                 try (ResultSet keys = ps.getGeneratedKeys()) {
-                    if (!keys.next()) {
-                        c.rollback();
-                        return PurchaseOutcome.ERROR;
-                    }
+                    if (!keys.next()) { c.rollback(); return PurchaseOutcome.ERROR; }
                     ticketNumber = keys.getInt(1);
                 }
             }
@@ -155,10 +143,7 @@ public final class BookingService {
                     dec.setString(1, leg.airlineId());
                     dec.setInt(2, leg.flightNumber());
                     int updated = dec.executeUpdate();
-                    if (updated != 1) {
-                        c.rollback();
-                        return PurchaseOutcome.SOLD_OUT;
-                    }
+                    if (updated != 1) { c.rollback(); return PurchaseOutcome.SOLD_OUT; }
                     incIncludes.setInt(1, ticketNumber);
                     incIncludes.setString(2, leg.airlineId());
                     incIncludes.setInt(3, leg.flightNumber());

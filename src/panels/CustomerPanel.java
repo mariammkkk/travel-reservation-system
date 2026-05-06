@@ -413,7 +413,7 @@ public class CustomerPanel extends JFrame {
         String from = tfFrom.getText().trim();
         String to = tfTo.getText().trim();
         String d1 = tfDepart.getText().trim();
-        String d2 = cbRound.isSelected() ? tfReturn.getText().trim() : null;
+        String d2   = tfReturn.getText().trim();
 
         try {
             FlightSearchResult r = FindFlights.searchFlightsFull(from, to, d1, d2, cbRound.isSelected(),
@@ -695,7 +695,7 @@ public class CustomerPanel extends JFrame {
             return;
         }
         List<FlightLeg> legs = currentItineraries.get(mr);
-        PurchaseInput in = PurchaseDialogs.prompt(this, "Purchase itinerary", legs.size());
+        PurchaseInput in = PurchaseDialogs.prompt(this, "Purchase itinerary", legs.size(), cbRound.isSelected());
         if (in == null) {
             return;
         }
@@ -703,7 +703,7 @@ public class CustomerPanel extends JFrame {
         try {
             Connection c = DatabaseConnection.getConnection();
             PurchaseOutcome out = BookingService.purchaseItinerary(c, customerId, legs, in.travelClass(),
-                    in.seats(), in.meal(), in.bookingFee());
+                    in.seats(), in.meal(), in.bookingFee(), in.roundTrip());
             switch (out) {
                 case SUCCESS -> JOptionPane.showMessageDialog(this, "Booking confirmed!", "Purchase",
                         JOptionPane.INFORMATION_MESSAGE);
