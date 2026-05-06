@@ -5,6 +5,8 @@ import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
@@ -24,6 +26,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 
 /**
  * Consistent colors, type, and widgets so the UI reads as one product rather than default Swing.
@@ -48,6 +51,7 @@ public final class AppTheme {
 
     private static final Font BODY = new Font(Font.SANS_SERIF, Font.PLAIN, 13);
     private static final Font BODY_SEMI = new Font(Font.SANS_SERIF, Font.BOLD, 13);
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private AppTheme() {}
 
@@ -244,6 +248,17 @@ public final class AppTheme {
         t.setSelectionBackground(new Color(0x3D, 0x8B, 0x72, 70));
         t.setSelectionForeground(INK);
         t.setFont(BODY);
+        // Default Timestamp rendering includes trailing ".0" fractional seconds; use whole seconds.
+        t.setDefaultRenderer(Timestamp.class, new DefaultTableCellRenderer() {
+            @Override
+            protected void setValue(Object value) {
+                if (value instanceof Timestamp ts) {
+                    setText(ts.toLocalDateTime().format(TS_FMT));
+                } else {
+                    super.setValue(value);
+                }
+            }
+        });
         if (t.getTableHeader() != null) {
             t.getTableHeader().setBackground(TABLE_HEADER_BG);
             t.getTableHeader().setForeground(Color.WHITE);
