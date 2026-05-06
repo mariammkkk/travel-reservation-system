@@ -1,6 +1,6 @@
 # Travel Reservation System
 
-Standalone Java Swing client backed by MySQL and JDBC. It models flight inventory, ticketing, and waiting lists with three application roles: customer, customer representative, and administrator. The UI is themed through `src/ui/AppTheme.java` (Nimbus + custom palette—warm paper, evergreen accent, rust accent stripe on sign-in—not the default gray Metal look).
+Standalone Java Swing client backed by MySQL and JDBC. It models flight inventory, ticketing, and waiting lists with three application roles: customer, customer representative, and administrator. The UI is themed through `src/ui/AppTheme.java`.
 
 ## What’s in this repository
 
@@ -9,7 +9,6 @@ Standalone Java Swing client backed by MySQL and JDBC. It models flight inventor
 | Database schema (tables, keys, foreign keys, sample data) | `sql/schema.sql` |
 | Application source | `src/` (compiled classes usually under `out/`) |
 
-An E-R diagram, if you maintain one for documentation, is not part of this tree.
 
 ## Stack
 
@@ -19,7 +18,7 @@ An E-R diagram, if you maintain one for documentation, is not part of this tree.
 
 ## Schema overview
 
-The relational model covers airlines, aircraft, airports, flights, tickets (with per-leg detail), customers, and employees. **`Includes`** links tickets to flight segments; **`WaitingList`** stores queue requests per flight. **`CustomerAlert`** stores in-app notices (e.g. waitlist seat opened after a cancellation); **`CustomerQuestion`** stores customer questions and representative answers. Referential integrity is enforced in `sql/schema.sql`.
+The relational model covers airlines, aircraft, airports, flights, tickets (with per-leg detail), customers, and employees. **`Includes`** links tickets to flight segments; **`WaitingList`** stores queue requests per flight. **`CustomerAlert`** stores in-app notices (ex: waitlist seat opened after a cancellation); **`CustomerQuestion`** stores customer questions and representative answers. Referential integrity is enforced in `sql/schema.sql`.
 
 ## Features by role
 
@@ -27,7 +26,7 @@ The relational model covers airlines, aircraft, airports, flights, tickets (with
 
 - Search: one-way, round-trip (combined result set), and flexible date (±3 days).
 - Optional **one-stop (indirect)** itineraries in search; direct flights always included.
-- Sort (e.g. departure, arrival, duration, economy fare) and filter (airline substring, maximum economy fare, nonstop vs one-stop, local **departure/arrival clock** windows `HH:mm`).
+- Sort (ex: departure, arrival, duration, economy fare) and filter (airline substring, maximum economy fare, nonstop vs one-stop, local **departure/arrival clock** windows `HH:mm`).
 - Purchase ticket(s): economy / business / first, seat(s) per leg, meal, booking fee; inventory decremented on `Flight`.
 - Waitlist enqueue per flight leg when desired or when purchase finds no seats. When a cancellation **re-opens the last seat** in a cabin (0 → 1), matching waitlist customers get a **`CustomerAlert`**; they are prompted at next login and can open **Support → Notifications**.
 - **Support:** post a question to representatives; read answers under **My questions & answers**.
@@ -36,7 +35,7 @@ The relational model covers airlines, aircraft, airports, flights, tickets (with
 
 **Customer representative**
 
-- Book on behalf of a customer (username lookup); one- or two-leg manual entry.
+- Book on behalf of a customer (username lookup); one or two leg manual entry.
 - Edit reservation: update seat and meal on a chosen `Includes` segment.
 - Maintain aircraft, airports, and flights (list / add / update / delete via forms).
 - View waiting list for a given flight (airline + flight number).
@@ -71,9 +70,9 @@ out/                    -- compiled `.class` output (local; often gitignored)
 
 - JDK (`javac`, `java`)
 - MySQL Server
-- MySQL Connector/J JAR in `lib/` (e.g. `mysql-connector-j-9.7.0.jar`; filename must match your `javac` / `java` classpath)
+- MySQL Connector/J JAR in `lib/` (ex: `mysql-connector-j-9.7.0.jar`; filename must match your `javac` / `java` classpath)
 
-On Ubuntu/Pop!_OS, MySQL `root` often uses **socket authentication**. The app’s default JDBC settings (`root` + empty password) then fail with **Access denied**. Use **`sudo mysql`** to administer the server, and create a **separate MySQL user with a password** for the Swing app (`TRAVEL_DB_USER` / `TRAVEL_DB_PASSWORD`).
+On Ubuntu/Pop!_OS, MySQL `root` often uses socket authentication. The app’s default JDBC settings (`root` + empty password) then fail with Access denied. Use **`sudo mysql`** to administer the server, and create a separate MySQL user with a password for the Swing app (`TRAVEL_DB_USER` / `TRAVEL_DB_PASSWORD`).
 
 Quick setup (once):
 
@@ -98,7 +97,7 @@ mysql -u YOUR_USER -p < sql/schema.sql
 
 If you already created the database from an older `schema.sql`, run `sql/patch_customer_support.sql` once to add **`CustomerAlert`** and **`CustomerQuestion`**.
 
-Use a user that can create the database or run against an existing empty `travel_reservation` database as appropriate. After loading, seeded **application** logins (the Swing login form, not MySQL) are:
+Use a user that can create the database or run against an existing empty `travel_reservation` database as appropriate. After loading, seeded *application logins (the Swing login form, not MySQL) are:
 
 | Role      | Username | Password |
 |-----------|----------|----------|
@@ -135,8 +134,8 @@ Windows: use `;` instead of `:` in the `-cp` argument.
 ## Known limitations
 
 - **Round-trip tickets:** Search can show outbound and return rows together; each purchase action creates a `Ticket` with type `one_way`. A single `round_trip` ticket spanning both directions is not modeled as one insert.
-- **Indirect flights:** Search supports **one connection** (two legs), not arbitrary multi-hop routing.
+- **Indirect flights:** Search supports one connection (two legs), not arbitrary multi-hop routing.
 - **Economy policy:** Changing an economy reservation (beyond cancel flow) is not implemented; cancel uses a confirmation step rather than a separate fee ledger in the database.
-- **Sorting after search:** Re-sort buttons that reload from SQL align itinerary metadata only for **direct** flights; use **Search** again before purchasing connection rows after heavy re-sorting.
+- **Sorting after search:** Re-sort buttons that reload from SQL align itinerary metadata only for direct flights; use Search again before purchasing connection rows after heavy re-sorting.
 - **Representative edits:** Seat and meal only; fare class changes that would alter inventory are not handled.
-- **Waitlist promotion:** Customers are **not** auto-booked when a seat frees; they receive an in-app **alert** (and must purchase manually). Email/SMS is not implemented.
+- **Waitlist promotion:** Customers are not auto-booked when a seat frees; they receive an in-app alert (and must purchase manually). Email/SMS is not implemented.
