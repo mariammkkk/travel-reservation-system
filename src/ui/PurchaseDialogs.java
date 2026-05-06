@@ -17,14 +17,14 @@ public final class PurchaseDialogs {
 
     private PurchaseDialogs() {}
 
-    public record PurchaseInput(String travelClass, String meal, BigDecimal bookingFee, List<String> seats) {}
+    public record PurchaseInput(String travelClass, String meal, BigDecimal bookingFee, List<String> seats, boolean roundTrip) {}
 
     /**
      * Prompt for cabin, booking fee, meal, and one seat field per segment.
      *
      * @return null if cancelled or invalid
      */
-    public static PurchaseInput prompt(Component parent, String title, int segments) {
+    public static PurchaseInput prompt(Component parent, String title, int segments, boolean roundTrip) {
         JPanel panel = new JPanel(new GridLayout(0, 2, 6, 6));
         panel.setBackground(AppTheme.PAGE);
         JComboBox<String> clazz = new JComboBox<>(new String[] { "economy", "business", "first" });
@@ -65,6 +65,6 @@ public final class PurchaseDialogs {
             seats.add(t.getText().trim());
         }
         String cl = ((String) clazz.getSelectedItem());
-        return new PurchaseInput(cl, meal.getText().trim(), bf, seats);
+        return new PurchaseInput(cl, meal.getText().trim(), bf, seats, roundTrip);
     }
 }

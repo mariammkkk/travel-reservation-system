@@ -169,13 +169,17 @@ public class RepPanel extends JFrame {
             legs.add(new FlightLeg(a2.trim().toUpperCase(), Integer.parseInt(f2.trim())));
         }
 
-        PurchaseInput in = PurchaseDialogs.prompt(this, "Purchase for #" + username, legs.size());
+        boolean isRoundTrip = JOptionPane.showConfirmDialog(this,
+        "Is this a round-trip ticket?", "Ticket type",
+        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION;
+
+        PurchaseInput in = PurchaseDialogs.prompt(this, "Purchase for #" + username, legs.size(), isRoundTrip);
         if (in == null) {
             return;
         }
         Connection c = DatabaseConnection.getConnection();
         PurchaseOutcome out = BookingService.purchaseItinerary(c, customerId, legs, in.travelClass(),
-                in.seats(), in.meal(), in.bookingFee());
+                in.seats(), in.meal(), in.bookingFee(), in.roundTrip());
         switch (out) {
             case SUCCESS -> JOptionPane.showMessageDialog(this, "Booked.");
             case SOLD_OUT -> JOptionPane.showMessageDialog(this, "Sold out — add to waitlist manually if needed.");
